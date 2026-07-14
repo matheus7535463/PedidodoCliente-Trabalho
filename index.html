@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="description"
+        content="Sistema de gerenciamento de equipes para Hackathons e Eventos.">
+
+    <meta
+        name="theme-color"
+        content="#111111">
+
+    <title>Hackathon Manager</title>
+
+    <!-- Google Fonts -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+
+    <!-- Font Awesome -->
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+    <!-- CSS -->
+
+    <link rel="stylesheet"
+          href="style.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- ===================================================== -->
+    <!-- SIDEBAR -->
+    <!-- ===================================================== -->
+
+    <aside
+        class="sidebar"
+        id="sidebar"
+        aria-label="Menu principal">
+
+        <header class="sidebar-header">
+
+            <button
+                id="menuToggle"
+                class="menu-toggle"
+                type="button"
+                aria-label="Abrir ou fechar menu">
+
+                <i class="fa-solid fa-bars"></i>
+
+            </button>
+
+            <div class="brand">
+
+                <div class="brand-icon">
+
+                    <i class="fa-solid fa-code-branch"></i>
+
+                </div>
+
+                <div class="brand-content">
+
+                    <h1>Hackathon</h1>
+
+                    <span>Manager</span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+        <nav
+            class="sidebar-nav"
+            aria-label="Navegação">
+
+            <ul>
+
+                <li>
+
+                    <a
+                        class="active"
+                        href="#dashboard">
+
+                        <i class="fa-solid fa-chart-line"></i>
+
+                        <span>Dashboard</span>
+
+                    </a>
+
+                </li>
+
+                <li>
+
+                    <a href="#participants">
+
+                        <i class="fa-solid fa-users"></i>
+
+                        <span>Participantes</span>
+
+                    </a>
+
+                </li>
+
+                <li>
+
+                    <a href="#teams">
+
+                        <i class="fa-solid fa-people-group"></i>
+
+                        <span>Equipes</span>
+
+                    </a>
+
+                </li>
+
+                <li>
+
+                    <a href="#without-team">
+
+                        <i class="fa-solid fa-user-minus"></i>
+
+                        <span>Sem equipe</span>
+
+                    </a>
+
+                </li>
+
+                <li>
+
+                    <a href="#statistics">
+
+                        <i class="fa-solid fa-chart-simple"></i>
+
+                        <span>Estatísticas</span>
+
+                    </a>
+
+                </li>
+
+                <li>
+
+                    <a href="#exports">
+
+                        <i class="fa-solid fa-file-export"></i>
+
+                        <span>Exportação</span>
+
+                    </a>
+
+                </li>
+
+            </ul>
+
+        </nav>
+
+        <footer class="sidebar-footer">
+
+            <small>
+
+                Painel do Organizador
+
+            </small>
+
+        </footer>
+
+    </aside>
+
+    <!-- ===================================================== -->
+    <!-- CONTEÚDO -->
+    <!-- ===================================================== -->
+
+    <div class="app-content">
+
+        <!-- =============================================== -->
+        <!-- TOPO -->
+        <!-- =============================================== -->
+
+        <header class="topbar">
+
+            <div>
+
+                <span class="eyebrow">
+
+                    Painel Administrativo
+
+                </span>
+
+                <h2>
+
+                    Gerenciamento de Equipes
+
+                </h2>
+
+            </div>
+
+            <div
+                class="user-box"
+                aria-label="Usuário atual">
+
+                <div class="user-avatar">
+
+                    <i class="fa-solid fa-user"></i>
+
+                </div>
+
+                <div>
+
+                    <strong>
+
+                        Organizador
+
+                    </strong>
+
+                    <small>
+
+                        Sessão ativa
+
+                    </small>
+
+                </div>
+
+            </div>
+
+        </header>
+
+        <!-- =============================================== -->
+        <!-- MAIN -->
+        <!-- =============================================== -->
+
+        <main class="content">
+
+            <!-- =========================================== -->
+            <!-- DASHBOARD -->
+            <!-- =========================================== -->
+
+            <section
+                class="panel"
+                id="dashboard">
+
+                <header class="panel-header">
+
+                    <div>
+
+                        <h2>
+
+                            Dashboard
+
+                        </h2>
+
+                        <p>
+
+                            Acompanhe rapidamente os indicadores do evento.
+
+                        </p>
+
+                    </div>
+
+                </header>
+
+                <section class="dashboard-grid">
+
+                    <article class="dashboard-card">
+
+                        <header>
+
+                            <i class="fa-solid fa-users"></i>
+
+                        </header>
+
+                        <div>
+
+                            <small>
+
+                                Participantes
+
+                            </small>
+
+                            <strong id="totalParticipantes">
+
+                                0
+
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+                    <article class="dashboard-card">
+
+                        <header>
+
+                            <i class="fa-solid fa-people-group"></i>
+
+                        </header>
+
+                        <div>
+
+                            <small>
+
+                                Equipes
+
+                            </small>
+
+                            <strong id="totalEquipes">
+
+                                0
+
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+                    <article class="dashboard-card">
+
+                        <header>
+
+                            <i class="fa-solid fa-circle-check"></i>
+
+                        </header>
+
+                        <div>
+
+                            <small>
+
+                                Equipes completas
+
+                            </small>
+
+                            <strong id="equipesCompletas">
+
+                                0
+
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+                    <article class="dashboard-card">
+
+                        <header>
+
+                            <i class="fa-solid fa-door-open"></i>
+
+                        </header>
+
+                        <div>
+
+                            <small>
+
+                                Equipes com vagas
+
+                            </small>
+
+                            <strong id="equipesComVagas">
+
+                                0
+
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+                    <article class="dashboard-card">
+
+                        <header>
+
+                            <i class="fa-solid fa-user-clock"></i>
+
+                        </header>
+
+                        <div>
+
+                            <small>
+
+                                Sem equipe
+
+                            </small>
+
+                            <strong id="semEquipeTotal">
+
+                                0
+
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+                </section>
+
+                                <!-- =========================================== -->
+                <!-- PARTICIPANTES -->
+                <!-- =========================================== -->
+
+                <section
+                    class="panel"
+                    id="participants">
+
+                    <header class="panel-header">
+
+                        <div>
+
+                            <h2>
+
+                                Participantes
+
+                            </h2>
+
+                            <p>
+
+                                Cadastre, edite e organize os participantes do evento.
+
+                            </p>
+
+                        </div>
+
+                    </header>
+
+                    <!-- FORMULÁRIO -->
+
+                    <section class="panel-body">
+
+                        <form
+                            id="participantForm"
+                            class="form-grid"
+                            autocomplete="off"
+                            novalidate>
+
+                            <div class="form-group">
+
+                                <label for="nome">
+
+                                    Nome completo
+
+                                </label>
+
+                                <input
+                                    id="nome"
+                                    name="nome"
+                                    type="text"
+                                    maxlength="80"
+                                    placeholder="Ex.: João Silva"
+                                    autocomplete="name"
+                                    required>
+
+                                <small
+                                    class="helper-text">
+
+                                    Utilize letras maiúsculas e minúsculas normalmente.
+
+                                </small>
+
+                                <small
+                                    class="field-error"
+                                    id="erroNome">
+
+                                </small>
+
+                            </div>
+
+                            <div class="form-group">
+
+                                <label for="habilidade">
+
+                                    Habilidade principal
+
+                                </label>
+
+                                <input
+                                    id="habilidade"
+                                    name="habilidade"
+                                    type="text"
+                                    maxlength="50"
+                                    placeholder="Ex.: Front-end"
+                                    required>
+
+                                <small
+                                    class="helper-text">
+
+                                    Informe a principal habilidade.
+
+                                </small>
+
+                            </div>
+
+                            <!-- FOTO -->
+
+                            <div class="form-group">
+
+                                <label>
+
+                                    Foto do participante
+
+                                </label>
+
+                                <div class="image-upload">
+
+                                    <img
+                                        id="previewParticipante"
+                                        class="image-preview"
+                                        src=""
+                                        alt="Pré-visualização">
+
+                                    <input
+                                        type="file"
+                                        id="fotoParticipante"
+                                        accept="image/*">
+
+                                </div>
+
+                                <small class="helper-text">
+
+                                    Caso nenhuma imagem seja enviada,
+                                    um avatar padrão será utilizado.
+
+                                </small>
+
+                            </div>
+
+                            <div class="form-actions">
+
+                                <button
+                                    id="btnSalvarParticipante"
+                                    type="button">
+
+                                    <i class="fa-solid fa-plus"></i>
+
+                                    Cadastrar
+
+                                </button>
+
+                                <button
+                                    id="btnCancelarParticipante"
+                                    type="button"
+                                    class="secondary hidden">
+
+                                    Cancelar
+
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </section>
+
+                    <!-- FILTROS -->
+
+                    <section class="panel-body">
+
+                        <div class="filters">
+
+                            <div class="form-group">
+
+                                <label
+                                    for="pesquisaParticipante">
+
+                                    Pesquisar
+
+                                </label>
+
+                                <input
+                                    id="pesquisaParticipante"
+                                    type="search"
+                                    placeholder="Pesquisar participante...">
+
+                            </div>
+
+                            <div class="form-group">
+
+                                <label
+                                    for="filtroHabilidade">
+
+                                    Habilidade
+
+                                </label>
+
+                                <select
+                                    id="filtroHabilidade">
+
+                                    <option value="">
+
+                                        Todas
+
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <div class="form-group">
+
+                                <label
+                                    for="filtroSituacao">
+
+                                    Situação
+
+                                </label>
+
+                                <select
+                                    id="filtroSituacao">
+
+                                    <option value="todos">
+
+                                        Todas
+
+                                    </option>
+
+                                    <option value="comEquipe">
+
+                                        Com equipe
+
+                                    </option>
+
+                                    <option value="semEquipe">
+
+                                        Sem equipe
+
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                    <!-- TABELA -->
+
+                    <section class="panel-body">
+
+                        <div class="table-container">
+
+                            <table>
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>
+
+                                            Foto
+
+                                        </th>
+
+                                        <th>
+
+                                            Nome
+
+                                        </th>
+
+                                        <th>
+
+                                            Habilidade
+
+                                        </th>
+
+                                        <th>
+
+                                            Equipe
+
+                                        </th>
+
+                                        <th>
+
+                                            Status
+
+                                        </th>
+
+                                        <th>
+
+                                            Ações
+
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody
+                                    id="listaParticipantes">
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                        <div
+                            id="participantesVazio"
+                            class="empty-state hidden">
+
+                            <i class="fa-regular fa-folder-open"></i>
+
+                            <h3>
+
+                                Nenhum participante encontrado
+
+                            </h3>
+
+                            <p>
+
+                                Cadastre um participante para começar.
+
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                </section>
+
+                                <!-- =========================================== -->
+                <!-- EQUIPES -->
+                <!-- =========================================== -->
+
+                <section
+                    class="panel"
+                    id="teams">
+
+                    <header class="panel-header">
+
+                        <div>
+
+                            <h2>
+
+                                Equipes
+
+                            </h2>
+
+                            <p>
+
+                                Crie equipes, defina sua capacidade e organize os participantes.
+
+                            </p>
+
+                        </div>
+
+                    </header>
+
+                    <!-- FORMULÁRIO -->
+
+                    <section class="panel-body">
+
+                        <form
+                            id="teamForm"
+                            class="form-grid"
+                            autocomplete="off"
+                            novalidate>
+
+                            <div class="form-group">
+
+                                <label for="nomeEquipe">
+
+                                    Nome da equipe
+
+                                </label>
+
+                                <input
+                                    id="nomeEquipe"
+                                    type="text"
+                                    maxlength="60"
+                                    placeholder="Ex.: Alpha Team"
+                                    required>
+
+                                <small
+                                    class="helper-text">
+
+                                    Utilize um nome curto e de fácil identificação.
+
+                                </small>
+
+                                <small
+                                    class="field-error"
+                                    id="erroEquipe">
+
+                                </small>
+
+                            </div>
+
+                            <div class="form-group">
+
+                                <label for="capacidade">
+
+                                    Capacidade máxima
+
+                                </label>
+
+                                <input
+                                    id="capacidade"
+                                    type="number"
+                                    min="1"
+                                    max="50"
+                                    placeholder="4"
+                                    required>
+
+                                <small class="helper-text">
+
+                                    Informe o número máximo de integrantes.
+
+                                </small>
+
+                            </div>
+
+                            <!-- LOGOTIPO -->
+
+                            <div class="form-group">
+
+                                <label>
+
+                                    Logotipo da equipe
+
+                                </label>
+
+                                <div class="image-upload">
+
+                                    <img
+                                        id="previewEquipe"
+                                        class="image-preview"
+                                        src=""
+                                        alt="Pré-visualização do logotipo">
+
+                                    <input
+                                        id="logoEquipe"
+                                        type="file"
+                                        accept="image/*">
+
+                                </div>
+
+                                <small class="helper-text">
+
+                                    Caso nenhum logotipo seja enviado,
+                                    será utilizado um avatar padrão.
+
+                                </small>
+
+                            </div>
+
+                            <div class="form-actions">
+
+                                <button
+                                    id="btnSalvarEquipe"
+                                    type="button">
+
+                                    <i class="fa-solid fa-plus"></i>
+
+                                    Criar Equipe
+
+                                </button>
+
+                                <button
+                                    id="btnCancelarEquipe"
+                                    class="secondary hidden"
+                                    type="button">
+
+                                    Cancelar
+
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </section>
+
+                    <!-- LISTA -->
+
+                    <section class="panel-body">
+
+                        <div
+                            id="listaEquipes"
+                            class="team-grid">
+
+                        </div>
+
+                        <div
+                            id="equipesVazio"
+                            class="empty-state hidden">
+
+                            <i class="fa-solid fa-people-group"></i>
+
+                            <h3>
+
+                                Nenhuma equipe criada
+
+                            </h3>
+
+                            <p>
+
+                                Crie a primeira equipe para iniciar a organização.
+
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                </section>
+
+                <!-- =========================================== -->
+                <!-- PARTICIPANTES SEM EQUIPE -->
+                <!-- =========================================== -->
+
+                <section
+                    class="panel"
+                    id="without-team">
+
+                    <header class="panel-header">
+
+                        <div>
+
+                            <h2>
+
+                                Participantes sem equipe
+
+                            </h2>
+
+                            <p>
+
+                                Participantes aguardando alocação.
+
+                            </p>
+
+                        </div>
+
+                    </header>
+
+                    <section class="panel-body">
+
+                        <div class="table-container">
+
+                            <table>
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>
+
+                                            Foto
+
+                                        </th>
+
+                                        <th>
+
+                                            Nome
+
+                                        </th>
+
+                                        <th>
+
+                                            Habilidade
+
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody
+                                    id="listaSemEquipe">
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                        <div
+                            id="semEquipeVazio"
+                            class="empty-state hidden">
+
+                            <i class="fa-solid fa-circle-check"></i>
+
+                            <h3>
+
+                                Todos os participantes estão alocados
+
+                            </h3>
+
+                            <p>
+
+                                Não existem participantes aguardando equipe.
+
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                </section>
+
+                                <!-- =========================================== -->
+                <!-- ESTATÍSTICAS -->
+                <!-- =========================================== -->
+
+                <section
+                    class="panel"
+                    id="statistics">
+
+                    <header class="panel-header">
+
+                        <div>
+
+                            <h2>
+
+                                Estatísticas
+
+                            </h2>
+
+                            <p>
+
+                                Acompanhe a distribuição dos participantes e das equipes.
+
+                            </p>
+
+                        </div>
+
+                    </header>
+
+                    <section class="panel-body">
+
+                        <div class="chart-grid">
+
+                            <article class="chart-card">
+
+                                <header>
+
+                                    <h3>
+
+                                        Habilidades
+
+                                    </h3>
+
+                                </header>
+
+                                <canvas
+                                    id="graficoHabilidades">
+
+                                </canvas>
+
+                            </article>
+
+                            <article class="chart-card">
+
+                                <header>
+
+                                    <h3>
+
+                                        Equipes
+
+                                    </h3>
+
+                                </header>
+
+                                <canvas
+                                    id="graficoEquipes">
+
+                                </canvas>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                </section>
+
+                <!-- =========================================== -->
+                <!-- EXPORTAÇÃO -->
+                <!-- =========================================== -->
+
+                <section
+                    class="panel"
+                    id="exports">
+
+                    <header class="panel-header">
+
+                        <div>
+
+                            <h2>
+
+                                Exportação
+
+                            </h2>
+
+                            <p>
+
+                                Exporte rapidamente os dados do evento.
+
+                            </p>
+
+                        </div>
+
+                    </header>
+
+                    <section class="panel-body">
+
+                        <div class="button-grid">
+
+                            <button
+                                id="btnCSVParticipantes"
+                                type="button">
+
+                                <i class="fa-solid fa-file-csv"></i>
+
+                                Participantes (CSV)
+
+                            </button>
+
+                            <button
+                                id="btnPDFParticipantes"
+                                type="button">
+
+                                <i class="fa-solid fa-file-pdf"></i>
+
+                                Participantes (PDF)
+
+                            </button>
+
+                            <button
+                                id="btnCSVEquipes"
+                                type="button">
+
+                                <i class="fa-solid fa-file-csv"></i>
+
+                                Equipes (CSV)
+
+                            </button>
+
+                            <button
+                                id="btnPDFEquipes"
+                                type="button">
+
+                                <i class="fa-solid fa-file-pdf"></i>
+
+                                Equipes (PDF)
+
+                            </button>
+
+                        </div>
+
+                    </section>
+
+                </section>
+
+            </main>
+
+            <!-- =============================================== -->
+            <!-- RODAPÉ -->
+            <!-- =============================================== -->
+
+            <footer class="footer">
+
+                <small>
+
+                    Hackathon Manager © 2026
+
+                </small>
+
+            </footer>
+
+        </div>
+
+    </div>
+
+    <!-- =============================================== -->
+    <!-- MODAL -->
+    <!-- =============================================== -->
+
+    <dialog
+        id="modalConfirmacao"
+        class="modal"
+        aria-labelledby="modalTitulo"
+        aria-describedby="modalMensagem">
+
+        <form
+            method="dialog"
+            class="modal-content">
+
+            <header>
+
+                <i class="fa-solid fa-circle-exclamation"></i>
+
+                <h2
+                    id="modalTitulo">
+
+                    Confirmar ação
+
+                </h2>
+
+            </header>
+
+            <p
+                id="modalMensagem">
+
+                Deseja realmente continuar?
+
+            </p>
+
+            <footer>
+
+                <button
+                    id="cancelarModal"
+                    class="secondary"
+                    value="cancel">
+
+                    Cancelar
+
+                </button>
+
+                <button
+                    id="confirmarModal"
+                    value="confirm">
+
+                    Confirmar
+
+                </button>
+
+            </footer>
+
+        </form>
+
+    </dialog>
+
+    <!-- =============================================== -->
+    <!-- TOAST -->
+    <!-- =============================================== -->
+
+    <div
+        id="toast"
+        aria-live="polite"
+        aria-atomic="true">
+
+    </div>
+
+    <!-- =============================================== -->
+    <!-- SCRIPTS -->
+    <!-- =============================================== -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>

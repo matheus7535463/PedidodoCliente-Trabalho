@@ -1,754 +1,1917 @@
-/* =====================================================
-   HACKATHON MANAGER — LÓGICA DA APLICAÇÃO
-===================================================== */
+/* ==========================================================
+   HACKATHON MANAGER
+   SCRIPT.JS
+   ========================================================== */
 
-/* ---------- ESTADO ---------- */
-let participantes = JSON.parse(localStorage.getItem("hm_participantes")) || [];
-let equipes = JSON.parse(localStorage.getItem("hm_equipes")) || [];
+/* ==========================================================
+   ESTADO DA APLICAÇÃO
+   ========================================================== */
 
-let participanteEditar = null; // id do participante em edição
-let equipeEditar = null;       // id da equipe em edição
-let acaoModal = null;          // callback executado ao confirmar o modal
+const App = {
 
-/* ---------- PERSISTÊNCIA ---------- */
+    participantes: [],
+
+    equipes: [],
+
+    participanteEditando: null,
+
+    equipeEditando: null,
+
+    modalCallback: null,
+
+    charts: {
+
+        habilidades: null,
+
+        equipes: null
+
+    }
+
+};
+
+/* ==========================================================
+   CONSTANTES
+   ========================================================== */
+
+const STORAGE = {
+
+    participantes: "hackathon_participantes",
+
+    equipes: "hackathon_equipes"
+
+};
+
+const DEFAULT_AVATAR =
+
+"data:image/svg+xml;utf8," +
+
+encodeURIComponent(`
+
+<svg xmlns="http://www.w3.org/2000/svg"
+
+width="120"
+
+height="120">
+
+<rect width="100%" height="100%" fill="#ececec"/>
+
+<circle cx="60" cy="42" r="22" fill="#bdbdbd"/>
+
+<path d="M20 108c5-24 26-36 40-36s35 12 40 36"
+
+fill="#bdbdbd"/>
+
+</svg>
+
+`);
+
+/* ==========================================================
+   HELPERS
+   ========================================================== */
+
+const $ = selector => document.querySelector(selector);
+
+const $$ = selector => [...document.querySelectorAll(selector)];
+
+/* ==========================================================
+   INICIALIZAÇÃO
+   ========================================================== */
+
+document.addEventListener("DOMContentLoaded", iniciarSistema);
+
+function iniciarSistema(){
+
+    carregarDados();
+
+    configurarEventos();
+
+    atualizarTudo();
+
+}
+
+/* ==========================================================
+   EVENTOS
+   ========================================================== */
+
+function configurarEventos(){
+
+    /* Participantes */
+
+    $("#btnSalvarParticipante")
+        ?.addEventListener("click", salvarParticipante);
+
+    $("#btnCancelarParticipante")
+        ?.addEventListener("click", cancelarEdicaoParticipante);
+
+    /* Equipes */
+
+    $("#btnSalvarEquipe")
+        ?.addEventListener("click", salvarEquipe);
+
+    $("#btnCancelarEquipe")
+        ?.addEventListener("click", cancelarEdicaoEquipe);
+
+    /* Pesquisa */
+
+    $("#pesquisaParticipante")
+        ?.addEventListener("input", atualizarListaParticipantes);
+
+    /* Filtros */
+
+    $("#filtroHabilidade")
+        ?.addEventListener("change", atualizarListaParticipantes);
+
+    $("#filtroSituacao")
+        ?.addEventListener("change", atualizarListaParticipantes);
+
+    /* Uploads */
+
+    $("#fotoParticipante")
+        ?.addEventListener("change", previewFotoParticipante);
+
+    $("#logoEquipe")
+        ?.addEventListener("change", previewLogoEquipe);
+
+    /* Menu */
+
+    $("#menuToggle")
+        ?.addEventListener("click", alternarMenu);
+
+}
+
+/* ==========================================================
+   STORAGE
+   ========================================================== */
+
+function carregarDados(){
+
+    App.participantes =
+
+        JSON.parse(
+
+            localStorage.getItem(STORAGE.participantes)
+
+        ) || [];
+
+    App.equipes =
+
+        JSON.parse(
+
+            localStorage.getItem(STORAGE.equipes)
+
+        ) || [];
+
+}
+
 function salvarDados(){
-  localStorage.setItem("hm_participantes", JSON.stringify(participantes));
-  localStorage.setItem("hm_equipes", JSON.stringify(equipes));
+
+    localStorage.setItem(
+
+        STORAGE.participantes,
+
+        JSON.stringify(App.participantes)
+
+    );
+
+    localStorage.setItem(
+
+        STORAGE.equipes,
+
+        JSON.stringify(App.equipes)
+
+    );
+
 }
 
-/* ---------- TOAST ---------- */
-function mostrarToast(texto, tipo = ""){
-  const toast = document.getElementById("toast");
-  toast.textContent = texto;
-  toast.className = tipo ? `show ${tipo}` : "show";
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.remove("show"), 3000);
+/* ==========================================================
+   ATUALIZAÇÃO GERAL
+   ========================================================== */
+
+function atualizarTudo(){
+
+    atualizarDashboard();
+
+    atualizarListaParticipantes();
+
+    atualizarListaEquipes();
+
+    atualizarSemEquipe();
+
+    atualizarGraficos();
+
+    atualizarFiltros();
+
 }
 
-/* ---------- MODAL DE CONFIRMAÇÃO ---------- */
-function abrirModal(titulo, mensagem, callback){
-  document.getElementById("modalTitulo").textContent = titulo;
-  document.getElementById("modalMensagem").textContent = mensagem;
-  acaoModal = callback;
-  document.getElementById("modalConfirmacao").classList.add("ativo");
-}
-function cancelarModal(){
-  document.getElementById("modalConfirmacao").classList.remove("ativo");
-  acaoModal = null;
-}
-function confirmarModal(){
-  if (typeof acaoModal === "function") acaoModal();
-  cancelarModal();
+/* ==========================================================
+   MENU
+   ========================================================== */
+
+function alternarMenu(){
+
+    $("#sidebar")
+
+        ?.classList.toggle("open");
+
 }
 
-/* ---------- IDENTIDADE VISUAL DAS EQUIPES ---------- */
-const PALETAS_LOGO = [
-  ["#4338ca", "#8b5cf6"],
-  ["#06b6d4", "#4338ca"],
-  ["#8b5cf6", "#fb7185"],
-  ["#0891b2", "#22c55e"],
-  ["#d97706", "#fb7185"],
-  ["#4338ca", "#06b6d4"]
-];
+/* ==========================================================
+   VALIDAÇÃO
+   ========================================================== */
 
-function corDaEquipe(nome){
-  let hash = 0;
-  for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash);
-  const paleta = PALETAS_LOGO[Math.abs(hash) % PALETAS_LOGO.length];
-  return `linear-gradient(135deg, ${paleta[0]}, ${paleta[1]})`;
+const REGEX = {
+
+    nome: /^[A-Za-zÀ-ÿ]+(?: [A-Za-zÀ-ÿ]+)*$/,
+
+};
+
+/* ==========================================================
+   VALIDAR NOME
+   ========================================================== */
+
+function validarNome(nome){
+
+    nome = nome.trim();
+
+    if(nome.length === 0){
+
+        return{
+
+            valido:false,
+
+            mensagem:"O nome é obrigatório."
+
+        };
+
+    }
+
+    if(!REGEX.nome.test(nome)){
+
+        return{
+
+            valido:false,
+
+            mensagem:"Utilize apenas letras e espaços."
+
+        };
+
+    }
+
+    if(nome === nome.toUpperCase()){
+
+        return{
+
+            valido:false,
+
+            mensagem:"Não utilize o nome totalmente em letras maiúsculas."
+
+        };
+
+    }
+
+    if(nome === nome.toLowerCase()){
+
+        return{
+
+            valido:false,
+
+            mensagem:"O nome deve começar com letra maiúscula."
+
+        };
+
+    }
+
+    const palavras = nome.split(" ");
+
+    for(const palavra of palavras){
+
+        if(palavra[0] !== palavra[0].toUpperCase()){
+
+            return{
+
+                valido:false,
+
+                mensagem:"Cada palavra deve iniciar com letra maiúscula."
+
+            };
+
+        }
+
+    }
+
+    return{
+
+        valido:true,
+
+        mensagem:""
+
+    };
+
 }
 
-function iniciaisDoNome(nome){
-  const partes = nome.trim().split(/\s+/);
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+/* ==========================================================
+   MOSTRAR ERRO
+   ========================================================== */
+
+function mostrarErro(campo,mensagem){
+
+    campo.classList.remove("input-valid");
+
+    campo.classList.add("input-invalid");
+
+    const erro =
+
+        campo.parentElement.querySelector(".field-error");
+
+    if(erro){
+
+        erro.textContent = mensagem;
+
+    }
+
 }
 
-/* ---------- HELPERS DE DADOS ---------- */
-function getEquipe(id){ return equipes.find(e => e.id == id); }
-function getParticipante(id){ return participantes.find(p => p.id == id); }
-function nomeParaHtml(texto){
-  const div = document.createElement("div");
-  div.textContent = texto;
-  return div.innerHTML;
+/* ==========================================================
+   LIMPAR ERRO
+   ========================================================== */
+
+function limparErro(campo){
+
+    campo.classList.remove("input-invalid");
+
+    campo.classList.add("input-valid");
+
+    const erro =
+
+        campo.parentElement.querySelector(".field-error");
+
+    if(erro){
+
+        erro.textContent = "";
+
+    }
+
 }
 
-/* =====================================================
-   DASHBOARD
-===================================================== */
-function atualizarDashboard(){
-  document.getElementById("totalParticipantes").textContent = participantes.length;
-  document.getElementById("totalEquipes").textContent = equipes.length;
+/* ==========================================================
+   VALIDAR EM TEMPO REAL
+   ========================================================== */
 
-  const semEquipe = participantes.filter(p => p.equipeId == null);
-  document.getElementById("semEquipeTotal").textContent = semEquipe.length;
+function configurarValidacoes(){
 
-  const completas = equipes.filter(e => e.integrantes.length >= e.capacidade);
-  document.getElementById("equipesCompletas").textContent = completas.length;
+    const campos = [
 
-  const comVagas = equipes.filter(e => e.integrantes.length < e.capacidade);
-  document.getElementById("equipesComVagas").textContent = comVagas.length;
+        $("#nome"),
+
+        $("#nomeEquipe")
+
+    ];
+
+    campos.forEach(campo=>{
+
+        if(!campo) return;
+
+        campo.addEventListener("input",()=>{
+
+            const resultado =
+
+                validarNome(campo.value);
+
+            if(resultado.valido){
+
+                limparErro(campo);
+
+            }else{
+
+                mostrarErro(
+
+                    campo,
+
+                    resultado.mensagem
+
+                );
+
+            }
+
+        });
+
+    });
+
 }
 
-/* =====================================================
-   CARROSSEL DE EQUIPES
-===================================================== */
-function montarBadgeEquipe(equipe){
-  const membros = equipe.integrantes.map(id => getParticipante(id)).filter(Boolean);
-  const visiveis = membros.slice(0, 5);
-  const restantes = membros.length - visiveis.length;
+/* ==========================================================
+   VALIDAÇÃO FINAL
+   ========================================================== */
 
-  let avatares = visiveis.map(p => `<span class="mini-avatar" title="${nomeParaHtml(p.nome)}">${iniciaisDoNome(p.nome)}</span>`).join("");
-  if (restantes > 0) avatares += `<span class="mini-avatar mais">+${restantes}</span>`;
+function validarFormularioParticipante(){
 
-  return `
-    <div class="badge-equipe">
-      <div class="badge-notch"></div>
-      <div class="badge-logo" style="background:${corDaEquipe(equipe.nome)}">${iniciaisDoNome(equipe.nome)}</div>
-      <h4>${nomeParaHtml(equipe.nome)}</h4>
-      <p class="badge-count">${equipe.integrantes.length}/${equipe.capacidade} integrantes</p>
-      <div class="badge-membros">
-        ${membros.length ? avatares : '<span class="badge-vazio">sem integrantes</span>'}
-      </div>
-    </div>
-  `;
+    const campo = $("#nome");
+
+    const resultado =
+
+        validarNome(campo.value);
+
+    if(!resultado.valido){
+
+        mostrarErro(
+
+            campo,
+
+            resultado.mensagem
+
+        );
+
+        campo.focus();
+
+        return false;
+
+    }
+
+    return true;
+
 }
 
-function atualizarCarrossel(){
-  const trilho = document.getElementById("carrosselTrilho");
-  const wrap = document.getElementById("carrosselWrap");
+function validarFormularioEquipe(){
 
-  if (equipes.length === 0){
-    wrap.classList.add("oculto");
-    trilho.innerHTML = "";
-    return;
-  }
+    const campo = $("#nomeEquipe");
 
-  wrap.classList.remove("oculto");
-  // duplica a lista para permitir o loop contínuo do carrossel
-  const html = equipes.map(montarBadgeEquipe).join("");
-  trilho.innerHTML = html + html;
+    const resultado =
+
+        validarNome(campo.value);
+
+    if(!resultado.valido){
+
+        mostrarErro(
+
+            campo,
+
+            resultado.mensagem
+
+        );
+
+        campo.focus();
+
+        return false;
+
+    }
+
+    return true;
+
 }
-
-/* =====================================================
+ 
+/* ==========================================================
    PARTICIPANTES
-===================================================== */
-function popularFiltroHabilidades(){
-  const select = document.getElementById("filtroHabilidade");
-  const atual = select.value;
-  const habilidades = [...new Set(participantes.map(p => p.habilidade))].sort();
+   ========================================================== */
 
-  select.innerHTML = '<option value="">Todas as habilidades</option>' +
-    habilidades.map(h => `<option value="${nomeParaHtml(h)}">${nomeParaHtml(h)}</option>`).join("");
+function salvarParticipante(){
 
-  select.value = habilidades.includes(atual) ? atual : "";
+    if(!validarFormularioParticipante()){
+
+        return;
+
+    }
+
+    const nome = $("#nome").value.trim();
+
+    const habilidade = $("#habilidade").value.trim();
+
+    const foto = $("#previewParticipante")?.src || DEFAULT_AVATAR;
+
+    /* Evita participantes duplicados */
+
+    const duplicado = App.participantes.find((participante,index)=>{
+
+        if(App.participanteEditando !== null){
+
+            if(index === App.participanteEditando){
+
+                return false;
+
+            }
+
+        }
+
+        return participante.nome.toLowerCase() === nome.toLowerCase();
+
+    });
+
+    if(duplicado){
+
+        mostrarToast("Já existe um participante com esse nome.","erro");
+
+        mostrarErro($("#nome"),"Nome já cadastrado.");
+
+        return;
+
+    }
+
+    const participante = {
+
+        id: crypto.randomUUID(),
+
+        nome,
+
+        habilidade,
+
+        equipe:null,
+
+        foto
+
+    };
+
+    if(App.participanteEditando === null){
+
+        App.participantes.push(participante);
+
+        mostrarToast("Participante cadastrado.");
+
+    }else{
+
+        participante.id =
+
+            App.participantes[App.participanteEditando].id;
+
+        participante.equipe =
+
+            App.participantes[App.participanteEditando].equipe;
+
+        App.participantes[App.participanteEditando] = participante;
+
+        App.participanteEditando = null;
+
+        $("#btnSalvarParticipante").innerHTML =
+
+        `<i class="fa-solid fa-plus"></i> Cadastrar`;
+
+        $("#btnCancelarParticipante")
+
+            ?.classList.add("hidden");
+
+        mostrarToast("Participante atualizado.");
+
+    }
+
+    salvarDados();
+
+    atualizarTudo();
+
+    limparFormularioParticipante();
+
 }
 
-function atualizarParticipantes(){
-  popularFiltroHabilidades();
-
-  const termo = (document.getElementById("pesquisaParticipante").value || "").toLowerCase();
-  const habilidade = document.getElementById("filtroHabilidade").value;
-  const situacao = document.getElementById("filtroSituacao").value;
-
-  const filtrados = participantes.filter(p => {
-    const passaNome = p.nome.toLowerCase().includes(termo);
-    const passaHabilidade = !habilidade || p.habilidade === habilidade;
-    let passaSituacao = true;
-    if (situacao === "comEquipe") passaSituacao = p.equipeId != null;
-    if (situacao === "semEquipe") passaSituacao = p.equipeId == null;
-    return passaNome && passaHabilidade && passaSituacao;
-  });
-
-  const tabela = document.getElementById("listaParticipantes");
-  tabela.innerHTML = filtrados.map(p => {
-    const equipe = p.equipeId != null ? getEquipe(p.equipeId) : null;
-    return `
-      <tr>
-        <td>${nomeParaHtml(p.nome)} ${p.lider ? '<i class="fa-solid fa-crown" title="Líder" style="color:#d97706"></i>' : ""}</td>
-        <td>${nomeParaHtml(p.habilidade)}</td>
-        <td>${equipe ? nomeParaHtml(equipe.nome) : "Sem equipe"}</td>
-        <td>${equipe
-          ? '<span class="badge verde"><i class="fa-solid fa-check"></i> Em equipe</span>'
-          : '<span class="badge vermelho"><i class="fa-solid fa-xmark"></i> Livre</span>'}</td>
-        <td class="acoes-celula">
-          <button class="editar" onclick="editarParticipante(${p.id})" title="Editar"><i class="fa-solid fa-pen"></i></button>
-          <button class="excluir" onclick="pedirExclusaoParticipante(${p.id})" title="Excluir"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-
-  document.getElementById("participantesVazio").classList.toggle("oculto", filtrados.length > 0);
-}
+/* ==========================================================
+   LIMPAR FORMULÁRIO
+   ========================================================== */
 
 function limparFormularioParticipante(){
-  document.getElementById("nome").value = "";
-  document.getElementById("habilidade").value = "";
+
+    $("#nome").value = "";
+
+    $("#habilidade").value = "";
+
+    limparErro($("#nome"));
+
+    if($("#previewParticipante")){
+
+        $("#previewParticipante").src = DEFAULT_AVATAR;
+
+    }
+
 }
 
-function cancelarEdicaoParticipante(){
-  participanteEditar = null;
-  limparFormularioParticipante();
-  document.getElementById("tituloFormParticipante").textContent = "Cadastrar Participante";
-  document.getElementById("btnSalvarParticipante").innerHTML = '<i class="fa-solid fa-plus"></i> Cadastrar';
-  document.getElementById("btnCancelarParticipante").classList.add("oculto");
-}
-
-function salvarEdicao(){
-  const nome = document.getElementById("nome").value.trim();
-  const habilidade = document.getElementById("habilidade").value.trim();
-
-  if (nome === ""){ mostrarToast("Digite o nome do participante.", "erro"); return; }
-  if (habilidade === ""){ mostrarToast("Digite a habilidade do participante.", "erro"); return; }
-
-  const duplicado = participantes.find(p =>
-    p.nome.toLowerCase() === nome.toLowerCase() && p.id !== participanteEditar
-  );
-  if (duplicado){ mostrarToast("Já existe um participante com esse nome.", "erro"); return; }
-
-  if (participanteEditar == null){
-    participantes.push({ id: Date.now(), nome, habilidade, equipeId: null, lider: false });
-    mostrarToast("Participante cadastrado.", "sucesso");
-  } else {
-    const p = getParticipante(participanteEditar);
-    p.nome = nome;
-    p.habilidade = habilidade;
-    mostrarToast("Participante atualizado.", "sucesso");
-  }
-
-  salvarDados();
-  cancelarEdicaoParticipante();
-  atualizarSistema();
-}
+/* ==========================================================
+   EDITAR
+   ========================================================== */
 
 function editarParticipante(id){
-  const p = getParticipante(id);
-  if (!p) return;
-  participanteEditar = id;
-  document.getElementById("nome").value = p.nome;
-  document.getElementById("habilidade").value = p.habilidade;
-  document.getElementById("tituloFormParticipante").textContent = "Editar Participante";
-  document.getElementById("btnSalvarParticipante").innerHTML = '<i class="fa-solid fa-check"></i> Salvar';
-  document.getElementById("btnCancelarParticipante").classList.remove("oculto");
-  document.getElementById("participantes").scrollIntoView({ behavior: "smooth" });
+
+    const indice =
+
+        App.participantes.findIndex(
+
+            participante=>participante.id===id
+
+        );
+
+    if(indice<0){
+
+        return;
+
+    }
+
+    const participante = App.participantes[indice];
+
+    App.participanteEditando = indice;
+
+    $("#nome").value = participante.nome;
+
+    $("#habilidade").value = participante.habilidade;
+
+    if($("#previewParticipante")){
+
+        $("#previewParticipante").src =
+
+            participante.foto || DEFAULT_AVATAR;
+
+    }
+
+    $("#btnSalvarParticipante").innerHTML=
+
+    `<i class="fa-solid fa-floppy-disk"></i> Salvar alterações`;
+
+    $("#btnCancelarParticipante")
+
+        ?.classList.remove("hidden");
+
+    window.scrollTo({
+
+        top:0,
+
+        behavior:"smooth"
+
+    });
+
 }
 
-function pedirExclusaoParticipante(id){
-  const p = getParticipante(id);
-  if (!p) return;
-  if (p.equipeId != null){
-    mostrarToast("Remova o participante da equipe antes de excluir.", "erro");
-    return;
-  }
-  abrirModal("Excluir participante", `Deseja realmente excluir "${p.nome}"?`, () => excluirParticipante(id));
+/* ==========================================================
+   CANCELAR EDIÇÃO
+   ========================================================== */
+
+function cancelarEdicaoParticipante(){
+
+    App.participanteEditando = null;
+
+    limparFormularioParticipante();
+
+    $("#btnSalvarParticipante").innerHTML=
+
+    `<i class="fa-solid fa-plus"></i> Cadastrar`;
+
+    $("#btnCancelarParticipante")
+
+        ?.classList.add("hidden");
+
 }
+
+/* ==========================================================
+   EXCLUIR
+   ========================================================== */
 
 function excluirParticipante(id){
-  participantes = participantes.filter(p => p.id !== id);
-  salvarDados();
-  atualizarSistema();
-  mostrarToast("Participante removido.", "sucesso");
-}
 
-/* =====================================================
-   EQUIPES
-===================================================== */
-function limparFormularioEquipe(){
-  document.getElementById("nomeEquipe").value = "";
-  document.getElementById("capacidade").value = "";
-}
+    const participante =
 
-function cancelarEdicaoEquipe(){
-  equipeEditar = null;
-  limparFormularioEquipe();
-  document.getElementById("tituloFormEquipe").textContent = "Criar Equipe";
-  document.getElementById("btnSalvarEquipe").innerHTML = '<i class="fa-solid fa-plus"></i> Criar Equipe';
-  document.getElementById("btnCancelarEquipe").classList.add("oculto");
-}
+        App.participantes.find(
 
-function salvarEquipe(){
-  const nome = document.getElementById("nomeEquipe").value.trim();
-  const capacidade = Number(document.getElementById("capacidade").value);
+            p=>p.id===id
 
-  if (nome === ""){ mostrarToast("Digite o nome da equipe.", "erro"); return; }
-  if (!capacidade || capacidade <= 0){ mostrarToast("Informe uma capacidade válida.", "erro"); return; }
+        );
 
-  const duplicada = equipes.find(e =>
-    e.nome.toLowerCase() === nome.toLowerCase() && e.id !== equipeEditar
-  );
-  if (duplicada){ mostrarToast("Já existe uma equipe com esse nome.", "erro"); return; }
+    if(participante.equipe){
 
-  if (equipeEditar == null){
-    equipes.push({ id: Date.now(), nome, capacidade, integrantes: [], liderId: null });
-    mostrarToast("Equipe criada com sucesso.", "sucesso");
-  } else {
-    const equipe = getEquipe(equipeEditar);
-    if (capacidade < equipe.integrantes.length){
-      mostrarToast("A capacidade não pode ser menor que o número atual de integrantes.", "erro");
-      return;
+        mostrarToast(
+
+            "Remova o participante da equipe antes de excluí-lo.",
+
+            "erro"
+
+        );
+
+        return;
+
     }
-    equipe.nome = nome;
-    equipe.capacidade = capacidade;
-    mostrarToast("Equipe atualizada.", "sucesso");
-  }
 
-  salvarDados();
-  cancelarEdicaoEquipe();
-  atualizarSistema();
+    abrirModal(
+
+        "Excluir participante",
+
+        `Deseja realmente excluir ${participante.nome}?`,
+
+        ()=>{
+
+            App.participantes =
+
+                App.participantes.filter(
+
+                    participante=>participante.id!==id
+
+                );
+
+            salvarDados();
+
+            atualizarTudo();
+
+            mostrarToast(
+
+                "Participante removido."
+
+            );
+
+        }
+
+    );
+
 }
 
-function editarEquipe(id){
-  const equipe = getEquipe(id);
-  if (!equipe) return;
-  equipeEditar = id;
-  document.getElementById("nomeEquipe").value = equipe.nome;
-  document.getElementById("capacidade").value = equipe.capacidade;
-  document.getElementById("tituloFormEquipe").textContent = "Editar Equipe";
-  document.getElementById("btnSalvarEquipe").innerHTML = '<i class="fa-solid fa-check"></i> Salvar';
-  document.getElementById("btnCancelarEquipe").classList.remove("oculto");
-  document.getElementById("equipes").scrollIntoView({ behavior: "smooth" });
+/* ==========================================================
+   EQUIPES
+   ========================================================== */
+
+function salvarEquipe() {
+
+    if (!validarFormularioEquipe()) {
+        return;
+    }
+
+    const nome = $("#nomeEquipe").value.trim();
+
+    const capacidade = Number($("#capacidade").value);
+
+    const logo = $("#previewEquipe")?.src || DEFAULT_AVATAR;
+
+    if (capacidade <= 0) {
+
+        mostrarToast(
+            "A capacidade deve ser maior que zero.",
+            "erro"
+        );
+
+        return;
+    }
+
+    /* Evita equipes duplicadas */
+
+    const duplicada = App.equipes.find((equipe, index) => {
+
+        if (App.equipeEditando !== null) {
+
+            if (index === App.equipeEditando) {
+
+                return false;
+
+            }
+
+        }
+
+        return equipe.nome.toLowerCase() === nome.toLowerCase();
+
+    });
+
+    if (duplicada) {
+
+        mostrarErro(
+            $("#nomeEquipe"),
+            "Já existe uma equipe com esse nome."
+        );
+
+        return;
+
+    }
+
+    const equipe = {
+
+        id: crypto.randomUUID(),
+
+        nome,
+
+        capacidade,
+
+        logo,
+
+        lider: null,
+
+        integrantes: []
+
+    };
+
+    /* ---------- NOVA EQUIPE ---------- */
+
+    if (App.equipeEditando === null) {
+
+        App.equipes.push(equipe);
+
+        mostrarToast("Equipe criada.");
+
+    }
+
+    /* ---------- EDIÇÃO ---------- */
+
+    else {
+
+        const antiga = App.equipes[App.equipeEditando];
+
+        /* NÃO permite reduzir abaixo da quantidade atual */
+
+        if (capacidade < antiga.integrantes.length) {
+
+            mostrarToast(
+
+                "A capacidade não pode ser menor que a quantidade de integrantes.",
+
+                "erro"
+
+            );
+
+            return;
+
+        }
+
+        equipe.id = antiga.id;
+
+        equipe.integrantes = antiga.integrantes;
+
+        equipe.lider = antiga.lider;
+
+        App.equipes[App.equipeEditando] = equipe;
+
+        App.equipeEditando = null;
+
+        $("#btnSalvarEquipe").innerHTML =
+            `<i class="fa-solid fa-plus"></i> Criar Equipe`;
+
+        $("#btnCancelarEquipe")
+            ?.classList.add("hidden");
+
+        mostrarToast("Equipe atualizada.");
+
+    }
+
+    salvarDados();
+
+    atualizarTudo();
+
+    limparFormularioEquipe();
+
 }
 
-function pedirExclusaoEquipe(id){
-  const equipe = getEquipe(id);
-  if (!equipe) return;
-  if (equipe.integrantes.length > 0){
-    mostrarToast("Remova todos os integrantes antes de excluir a equipe.", "erro");
-    return;
-  }
-  abrirModal("Excluir equipe", `Deseja realmente excluir a equipe "${equipe.nome}"?`, () => removerEquipe(id));
+/* ==========================================================
+   LIMPAR FORMULÁRIO
+   ========================================================== */
+
+function limparFormularioEquipe() {
+
+    $("#nomeEquipe").value = "";
+
+    $("#capacidade").value = "";
+
+    limparErro($("#nomeEquipe"));
+
+    if ($("#previewEquipe")) {
+
+        $("#previewEquipe").src = DEFAULT_AVATAR;
+
+    }
+
 }
 
-function removerEquipe(id){
-  equipes = equipes.filter(e => e.id !== id);
-  salvarDados();
-  atualizarSistema();
-  mostrarToast("Equipe removida.", "sucesso");
+/* ==========================================================
+   EDITAR
+   ========================================================== */
+
+function editarEquipe(id) {
+
+    const indice =
+
+        App.equipes.findIndex(
+
+            equipe => equipe.id === id
+
+        );
+
+    if (indice < 0) {
+
+        return;
+
+    }
+
+    const equipe = App.equipes[indice];
+
+    App.equipeEditando = indice;
+
+    $("#nomeEquipe").value = equipe.nome;
+
+    $("#capacidade").value = equipe.capacidade;
+
+    if ($("#previewEquipe")) {
+
+        $("#previewEquipe").src =
+
+            equipe.logo || DEFAULT_AVATAR;
+
+    }
+
+    $("#btnSalvarEquipe").innerHTML =
+
+        `<i class="fa-solid fa-floppy-disk"></i> Salvar alterações`;
+
+    $("#btnCancelarEquipe")
+
+        ?.classList.remove("hidden");
+
+    window.scrollTo({
+
+        top: 0,
+
+        behavior: "smooth"
+
+    });
+
 }
 
-function montarCardEquipe(equipe){
-  const vagas = equipe.capacidade - equipe.integrantes.length;
-  const completa = vagas <= 0;
-  const porcentagem = Math.min(100, (equipe.integrantes.length / equipe.capacidade) * 100);
-  const lider = equipe.liderId != null ? getParticipante(equipe.liderId) : null;
+/* ==========================================================
+   CANCELAR EDIÇÃO
+   ========================================================== */
 
-  const livres = participantes.filter(p => p.equipeId == null);
-  const outrasEquipes = equipes.filter(e => e.id !== equipe.id);
+function cancelarEdicaoEquipe() {
 
-  const membrosHtml = equipe.integrantes.map(id => {
-    const p = getParticipante(id);
-    if (!p) return "";
-    const opcoesTransferencia = outrasEquipes.map(e =>
-      `<option value="${e.id}">${nomeParaHtml(e.nome)}</option>`
-    ).join("");
+    App.equipeEditando = null;
 
-    return `
-      <li>
-        <span class="membro-nome">
-          ${p.lider ? '<i class="fa-solid fa-crown" title="Líder"></i>' : ""}
-          ${nomeParaHtml(p.nome)}
-        </span>
-        <span class="membro-acoes">
-          <button title="Definir como líder" onclick="definirLider(${p.id}, ${equipe.id})"><i class="fa-solid fa-crown"></i></button>
-          ${outrasEquipes.length ? `
-            <select title="Transferir para outra equipe" onchange="if(this.value){transferirParticipante(${p.id}, Number(this.value)); this.value='';}">
-              <option value="">Transferir…</option>
-              ${opcoesTransferencia}
-            </select>` : ""}
-          <button title="Remover da equipe" onclick="removerDaEquipe(${p.id}, ${equipe.id})"><i class="fa-solid fa-xmark"></i></button>
-        </span>
-      </li>
-    `;
-  }).join("");
+    limparFormularioEquipe();
 
-  return `
-    <div class="equipe ${completa ? "completa" : ""}">
-      <div class="equipe-cabecalho">
-        <div class="equipe-logo" style="background:${corDaEquipe(equipe.nome)}">${iniciaisDoNome(equipe.nome)}</div>
-        <div>
-          <h3>${nomeParaHtml(equipe.nome)}</h3>
-          <div class="equipe-lider-nome">
-            <i class="fa-solid fa-crown"></i> ${lider ? nomeParaHtml(lider.nome) : "Sem líder definido"}
-          </div>
-        </div>
-      </div>
+    $("#btnSalvarEquipe").innerHTML =
 
-      <div class="equipe-status-linha">
-        <span>${completa ? '<span class="badge verde">Completa</span>' : '<span class="badge roxo">Em formação</span>'}</span>
-        <strong>${equipe.integrantes.length}/${equipe.capacidade}</strong>
-      </div>
+        `<i class="fa-solid fa-plus"></i> Criar Equipe`;
 
-      <div class="progresso ${completa ? "cheia" : ""}"><span style="width:${porcentagem}%"></span></div>
-      <p style="font-size:13px;color:var(--ink-soft)">${completa ? "Nenhuma vaga disponível" : `${vagas} vaga(s) disponível(is)`}</p>
+    $("#btnCancelarEquipe")
 
-      <ul class="membros">
-        ${membrosHtml || '<li class="sem-membros">Nenhum integrante ainda.</li>'}
-      </ul>
+        ?.classList.add("hidden");
 
-      ${!completa ? `
-        <div class="adicionar-membro">
-          <select id="selectAdd-${equipe.id}">
-            <option value="">${livres.length ? "Selecione um participante livre…" : "Nenhum participante livre"}</option>
-            ${livres.map(p => `<option value="${p.id}">${nomeParaHtml(p.nome)} — ${nomeParaHtml(p.habilidade)}</option>`).join("")}
-          </select>
-          <button ${livres.length ? "" : "disabled"} onclick="adicionarPeloSelect(${equipe.id})" title="Adicionar participante">
-            <i class="fa-solid fa-user-plus"></i>
-          </button>
-        </div>
-      ` : ""}
-
-      <div class="equipe-acoes">
-        <button class="editar" onclick="editarEquipe(${equipe.id})"><i class="fa-solid fa-pen"></i> Editar</button>
-        <button class="excluir" onclick="pedirExclusaoEquipe(${equipe.id})"><i class="fa-solid fa-trash"></i> Excluir</button>
-      </div>
-    </div>
-  `;
 }
 
-function atualizarEquipes(){
-  const area = document.getElementById("listaEquipes");
-  area.innerHTML = equipes.map(montarCardEquipe).join("");
-  document.getElementById("equipesVazio").classList.toggle("oculto", equipes.length > 0);
+/* ==========================================================
+   EXCLUIR
+   ========================================================== */
+
+function excluirEquipe(id) {
+
+    const equipe =
+
+        App.equipes.find(
+
+            equipe => equipe.id === id
+
+        );
+
+    if (equipe.integrantes.length > 0) {
+
+        mostrarToast(
+
+            "Não é possível excluir uma equipe que possui integrantes.",
+
+            "erro"
+
+        );
+
+        return;
+
+    }
+
+    abrirModal(
+
+        "Excluir equipe",
+
+        `Deseja realmente excluir ${equipe.nome}?`,
+
+        () => {
+
+            App.equipes =
+
+                App.equipes.filter(
+
+                    equipe => equipe.id !== id
+
+                );
+
+            salvarDados();
+
+            atualizarTudo();
+
+            mostrarToast(
+
+                "Equipe removida."
+
+            );
+
+        }
+
+    );
+
 }
 
-/* ---------- ALOCAÇÃO ---------- */
-function adicionarPeloSelect(equipeId){
-  const select = document.getElementById(`selectAdd-${equipeId}`);
-  const participanteId = Number(select.value);
-  if (!participanteId){ mostrarToast("Selecione um participante.", "erro"); return; }
-  adicionarNaEquipe(participanteId, equipeId);
+/* ==========================================================
+   ALOCAÇÃO DE PARTICIPANTES
+   ========================================================== */
+
+function adicionarParticipanteEquipe(participanteId, equipeId) {
+
+    const participante = App.participantes.find(
+        p => p.id === participanteId
+    );
+
+    const equipe = App.equipes.find(
+        e => e.id === equipeId
+    );
+
+    if (!participante || !equipe) return;
+
+    /* Participante já pertence a uma equipe */
+
+    if (participante.equipe !== null) {
+
+        mostrarToast(
+            "Este participante já pertence a uma equipe.",
+            "erro"
+        );
+
+        return;
+
+    }
+
+    /* Equipe cheia */
+
+    if (equipe.integrantes.length >= equipe.capacidade) {
+
+        mostrarToast(
+            "A equipe atingiu sua capacidade máxima.",
+            "erro"
+        );
+
+        return;
+
+    }
+
+    equipe.integrantes.push(participante.id);
+
+    participante.equipe = equipe.id;
+
+    /* Primeiro integrante vira líder automaticamente */
+
+    if (!equipe.lider) {
+
+        equipe.lider = participante.id;
+
+    }
+
+    salvarDados();
+
+    atualizarTudo();
+
+    mostrarToast("Participante adicionado.");
+
 }
 
-function adicionarNaEquipe(participanteId, equipeId){
-  const participante = getParticipante(participanteId);
-  const equipe = getEquipe(equipeId);
-  if (!participante || !equipe) return;
+/* ==========================================================
+   REMOVER PARTICIPANTE
+   ========================================================== */
 
-  // REGRA: um participante não pode estar em duas equipes ao mesmo tempo
-  if (participante.equipeId != null){
-    mostrarToast("Esse participante já pertence a uma equipe.", "erro");
-    return;
-  }
-  // REGRA: um participante não pode ocupar duas vagas na mesma equipe
-  if (equipe.integrantes.includes(participanteId)){
-    mostrarToast("Esse participante já está nessa equipe.", "erro");
-    return;
-  }
-  // REGRA: a equipe não pode ultrapassar sua capacidade máxima
-  if (equipe.integrantes.length >= equipe.capacidade){
-    mostrarToast("Essa equipe já está completa.", "erro");
-    return;
-  }
+function removerParticipanteEquipe(participanteId) {
 
-  equipe.integrantes.push(participanteId);
-  participante.equipeId = equipeId;
+    const participante = App.participantes.find(
+        p => p.id === participanteId
+    );
 
-  salvarDados();
-  atualizarSistema();
-  mostrarToast(`${participante.nome} adicionado à equipe ${equipe.nome}.`, "sucesso");
+    if (!participante) return;
+
+    const equipe = App.equipes.find(
+        e => e.id === participante.equipe
+    );
+
+    if (!equipe) return;
+
+    equipe.integrantes =
+        equipe.integrantes.filter(
+            id => id !== participanteId
+        );
+
+    participante.equipe = null;
+
+    /* Atualiza líder */
+
+    if (equipe.lider === participanteId) {
+
+        equipe.lider = equipe.integrantes[0] || null;
+
+    }
+
+    salvarDados();
+
+    atualizarTudo();
+
+    mostrarToast("Participante removido da equipe.");
+
 }
 
-function removerDaEquipe(participanteId, equipeId){
-  const equipe = getEquipe(equipeId);
-  const participante = getParticipante(participanteId);
-  if (!equipe || !participante) return;
+/* ==========================================================
+   TRANSFERÊNCIA
+   ========================================================== */
 
-  equipe.integrantes = equipe.integrantes.filter(id => id !== participanteId);
-  participante.equipeId = null;
-  participante.lider = false;
+function transferirParticipante(participanteId, novaEquipeId) {
 
-  if (equipe.liderId === participanteId) equipe.liderId = null;
+    const participante = App.participantes.find(
+        p => p.id === participanteId
+    );
 
-  salvarDados();
-  atualizarSistema();
-  mostrarToast("Participante removido da equipe.", "sucesso");
+    if (!participante) return;
+
+    const equipeAtual = App.equipes.find(
+        e => e.id === participante.equipe
+    );
+
+    const novaEquipe = App.equipes.find(
+        e => e.id === novaEquipeId
+    );
+
+    if (!novaEquipe) return;
+
+    if (novaEquipe.integrantes.length >= novaEquipe.capacidade) {
+
+        mostrarToast(
+            "A equipe de destino está cheia.",
+            "erro"
+        );
+
+        return;
+
+    }
+
+    /* Remove da antiga */
+
+    if (equipeAtual) {
+
+        equipeAtual.integrantes =
+            equipeAtual.integrantes.filter(
+                id => id !== participante.id
+            );
+
+        if (equipeAtual.lider === participante.id) {
+
+            equipeAtual.lider =
+                equipeAtual.integrantes[0] || null;
+
+        }
+
+    }
+
+    /* Adiciona na nova */
+
+    novaEquipe.integrantes.push(participante.id);
+
+    participante.equipe = novaEquipe.id;
+
+    if (!novaEquipe.lider) {
+
+        novaEquipe.lider = participante.id;
+
+    }
+
+    salvarDados();
+
+    atualizarTudo();
+
+    mostrarToast("Participante transferido.");
+
 }
 
-function transferirParticipante(participanteId, novaEquipeId){
-  const participante = getParticipante(participanteId);
-  if (!participante) return;
+/* ==========================================================
+   DEFINIR LÍDER
+   ========================================================== */
 
-  const equipeAtual = participante.equipeId != null ? getEquipe(participante.equipeId) : null;
-  const novaEquipe = getEquipe(novaEquipeId);
-  if (!novaEquipe) return;
+function definirLider(equipeId, participanteId) {
 
-  // REGRA: não faz sentido "transferir" para a mesma equipe em que já está
-  if (equipeAtual && equipeAtual.id === novaEquipe.id) return;
+    const equipe = App.equipes.find(
+        e => e.id === equipeId
+    );
 
-  // REGRA: um participante não pode ocupar duas vagas na mesma equipe
-  if (novaEquipe.integrantes.includes(participanteId)){
-    mostrarToast("O participante já está nessa equipe.", "erro");
-    return;
-  }
-  // REGRA: a equipe de destino não pode ultrapassar sua capacidade máxima
-  if (novaEquipe.integrantes.length >= novaEquipe.capacidade){
-    mostrarToast("A equipe de destino está cheia.", "erro");
-    return;
-  }
+    if (!equipe) return;
 
-  if (equipeAtual){
-    equipeAtual.integrantes = equipeAtual.integrantes.filter(id => id !== participanteId);
-    if (equipeAtual.liderId === participanteId) equipeAtual.liderId = null;
-  }
+    if (!equipe.integrantes.includes(participanteId)) {
 
-  novaEquipe.integrantes.push(participanteId);
-  participante.equipeId = novaEquipeId;
-  participante.lider = false;
+        mostrarToast(
+            "O participante não pertence à equipe.",
+            "erro"
+        );
 
-  salvarDados();
-  atualizarSistema();
-  mostrarToast(`${participante.nome} transferido para ${novaEquipe.nome}.`, "sucesso");
+        return;
+
+    }
+
+    equipe.lider = participanteId;
+
+    salvarDados();
+
+    atualizarTudo();
+
+    mostrarToast("Líder atualizado.");
+
 }
 
-function definirLider(participanteId, equipeId){
-  const equipe = getEquipe(equipeId);
-  if (!equipe || !equipe.integrantes.includes(participanteId)) return;
+/* ==========================================================
+   VAGAS DISPONÍVEIS
+   ========================================================== */
 
-  equipe.integrantes.forEach(id => {
-    const p = getParticipante(id);
-    if (p) p.lider = false;
-  });
+function vagasDisponiveis(equipe) {
 
-  equipe.liderId = participanteId;
-  const novoLider = getParticipante(participanteId);
-  if (novoLider) novoLider.lider = true;
+    return equipe.capacidade - equipe.integrantes.length;
 
-  salvarDados();
-  atualizarSistema();
-  mostrarToast(`${novoLider.nome} agora é líder da equipe ${equipe.nome}.`, "sucesso");
 }
 
-/* =====================================================
+function equipeCompleta(equipe) {
+
+    return equipe.integrantes.length >= equipe.capacidade;
+
+}
+
+/* ==========================================================
+   RENDERIZAÇÃO
+   ========================================================== */
+
+function atualizarListaParticipantes() {
+
+    const tbody = $("#listaParticipantes");
+
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    const pesquisa = ($("#pesquisaParticipante")?.value || "")
+        .trim()
+        .toLowerCase();
+
+    const habilidade = $("#filtroHabilidade")?.value || "";
+
+    const situacao = $("#filtroSituacao")?.value || "todos";
+
+    let participantes = [...App.participantes];
+
+    /* Pesquisa */
+
+    if (pesquisa) {
+
+        participantes = participantes.filter(p =>
+            p.nome.toLowerCase().includes(pesquisa)
+        );
+
+    }
+
+    /* Habilidade */
+
+    if (habilidade) {
+
+        participantes = participantes.filter(p =>
+            p.habilidade === habilidade
+        );
+
+    }
+
+    /* Situação */
+
+    if (situacao === "comEquipe") {
+
+        participantes = participantes.filter(p =>
+            p.equipe !== null
+        );
+
+    }
+
+    if (situacao === "semEquipe") {
+
+        participantes = participantes.filter(p =>
+            p.equipe === null
+        );
+
+    }
+
+    $("#participantesVazio")
+        ?.classList.toggle(
+            "hidden",
+            participantes.length !== 0
+        );
+
+    participantes.forEach(participante => {
+
+        const equipe = App.equipes.find(
+            e => e.id === participante.equipe
+        );
+
+        tbody.insertAdjacentHTML("beforeend", `
+
+<tr>
+
+<td>
+
+<img
+src="${participante.foto || DEFAULT_AVATAR}"
+class="avatar">
+
+</td>
+
+<td>
+
+<strong>${participante.nome}</strong>
+
+</td>
+
+<td>
+
+${participante.habilidade || "-"}
+
+</td>
+
+<td>
+
+${equipe ? equipe.nome : "Sem equipe"}
+
+</td>
+
+<td>
+
+<span class="badge ${equipe ? "success" : "warning"}">
+
+${equipe ? "Alocado" : "Disponível"}
+
+</span>
+
+</td>
+
+<td>
+
+<button
+onclick="editarParticipante('${participante.id}')">
+
+<i class="fa-solid fa-pen"></i>
+
+</button>
+
+<button
+onclick="excluirParticipante('${participante.id}')">
+
+<i class="fa-solid fa-trash"></i>
+
+</button>
+
+</td>
+
+</tr>
+
+`);
+
+    });
+
+}
+
+/* ==========================================================
    SEM EQUIPE
-===================================================== */
-function atualizarSemEquipe(){
-  const tabela = document.getElementById("listaSemEquipe");
-  const livres = participantes.filter(p => p.equipeId == null);
+   ========================================================== */
 
-  tabela.innerHTML = livres.map(p => `
-    <tr>
-      <td>${nomeParaHtml(p.nome)}</td>
-      <td>${nomeParaHtml(p.habilidade)}</td>
-    </tr>
-  `).join("");
+function atualizarSemEquipe() {
 
-  document.getElementById("semEquipeVazio").classList.toggle("oculto", livres.length > 0);
+    const tbody = $("#listaSemEquipe");
+
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    const livres =
+
+        App.participantes.filter(
+
+            participante => participante.equipe === null
+
+        );
+
+    $("#semEquipeVazio")
+        ?.classList.toggle(
+            "hidden",
+            livres.length !== 0
+        );
+
+    livres.forEach(participante => {
+
+        tbody.insertAdjacentHTML("beforeend", `
+
+<tr>
+
+<td>
+
+<img
+src="${participante.foto || DEFAULT_AVATAR}"
+class="avatar">
+
+</td>
+
+<td>
+
+${participante.nome}
+
+</td>
+
+<td>
+
+${participante.habilidade}
+
+</td>
+
+</tr>
+
+`);
+
+    });
+
 }
 
-/* =====================================================
-   ESTATÍSTICAS
-===================================================== */
-let graficoHabilidades, graficoEquipes;
+/* ==========================================================
+   EQUIPES
+   ========================================================== */
 
-function gerarEstatisticasHabilidades(){
-  const habilidades = {};
-  participantes.forEach(p => {
-    habilidades[p.habilidade] = (habilidades[p.habilidade] || 0) + 1;
-  });
-  return habilidades;
+function atualizarListaEquipes() {
+
+    const container = $("#listaEquipes");
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    $("#equipesVazio")
+        ?.classList.toggle(
+            "hidden",
+            App.equipes.length !== 0
+        );
+
+    App.equipes.forEach(equipe => {
+
+        const integrantes =
+
+            equipe.integrantes.map(id =>
+
+                App.participantes.find(
+                    participante => participante.id === id
+                )
+
+            ).filter(Boolean);
+
+        container.insertAdjacentHTML("beforeend", `
+
+<article class="team-card">
+
+<div class="team-header">
+
+<img
+src="${equipe.logo || DEFAULT_AVATAR}"
+class="team-logo">
+
+<div class="team-info">
+
+<h3>
+
+${equipe.nome}
+
+</h3>
+
+<span>
+
+${integrantes.length}/${equipe.capacidade} integrantes
+
+</span>
+
+</div>
+
+</div>
+
+<div class="team-members">
+
+${integrantes.map(p => `
+
+<div class="team-member">
+
+<img
+src="${p.foto || DEFAULT_AVATAR}">
+
+<div>
+
+<strong>${p.nome}</strong>
+
+<br>
+
+<small>${p.habilidade}</small>
+
+</div>
+
+</div>
+
+`).join("")}
+
+</div>
+
+<div class="team-actions">
+
+<button onclick="editarEquipe('${equipe.id}')">
+
+<i class="fa-solid fa-pen"></i>
+
+Editar
+
+</button>
+
+<button onclick="excluirEquipe('${equipe.id}')">
+
+<i class="fa-solid fa-trash"></i>
+
+Excluir
+
+</button>
+
+</div>
+
+</article>
+
+`);
+
+    });
+
 }
+
+/* ==========================================================
+   DASHBOARD
+   ========================================================== */
+
+function atualizarDashboard() {
+
+    const totalParticipantes = App.participantes.length;
+
+    const totalEquipes = App.equipes.length;
+
+    const equipesCompletas =
+        App.equipes.filter(e => equipeCompleta(e)).length;
+
+    const equipesComVagas =
+        App.equipes.filter(e => !equipeCompleta(e)).length;
+
+    const semEquipe =
+        App.participantes.filter(p => p.equipe === null).length;
+
+    $("#totalParticipantes").textContent = totalParticipantes;
+    $("#totalEquipes").textContent = totalEquipes;
+    $("#equipesCompletas").textContent = equipesCompletas;
+    $("#equipesComVagas").textContent = equipesComVagas;
+    $("#semEquipeTotal").textContent = semEquipe;
+
+}
+
+/* ==========================================================
+   FILTROS
+   ========================================================== */
+
+function atualizarFiltros(){
+
+    const select=$("#filtroHabilidade");
+
+    if(!select) return;
+
+    const atual=select.value;
+
+    const habilidades=[
+        ...new Set(
+            App.participantes
+            .map(p=>p.habilidade)
+            .filter(Boolean)
+        )
+    ].sort();
+
+    select.innerHTML="<option value=''>Todas as habilidades</option>";
+
+    habilidades.forEach(h=>{
+
+        select.innerHTML+=`
+        <option value="${h}">
+            ${h}
+        </option>`;
+
+    });
+
+    select.value=atual;
+
+}
+
+/* ==========================================================
+   TOAST
+   ========================================================== */
+
+let toastTimer;
+
+function mostrarToast(texto,tipo="sucesso"){
+
+    const toast=$("#toast");
+
+    if(!toast) return;
+
+    clearTimeout(toastTimer);
+
+    toast.textContent=texto;
+
+    toast.className="show";
+
+    if(tipo==="erro"){
+
+        toast.style.background="#b71c1c";
+
+    }else{
+
+        toast.style.background="#111";
+
+    }
+
+    toastTimer=setTimeout(()=>{
+
+        toast.classList.remove("show");
+
+    },3000);
+
+}
+
+/* ==========================================================
+   MODAL
+   ========================================================== */
+
+function abrirModal(titulo,mensagem,callback){
+
+    $("#modalTitulo").textContent=titulo;
+
+    $("#modalMensagem").textContent=mensagem;
+
+    App.modalCallback=callback;
+
+    $("#modalConfirmacao").showModal();
+
+}
+
+$("#confirmarModal")?.addEventListener(
+
+    "click",
+
+    ()=>{
+
+        $("#modalConfirmacao").close();
+
+        if(App.modalCallback){
+
+            App.modalCallback();
+
+        }
+
+    }
+
+);
+
+$("#cancelarModal")?.addEventListener(
+
+    "click",
+
+    ()=>{
+
+        $("#modalConfirmacao").close();
+
+    }
+
+);
+
+/* ==========================================================
+   GRÁFICOS
+   ========================================================== */
 
 function atualizarGraficos(){
-  const canvasHabilidades = document.getElementById("graficoHabilidades");
-  const canvasEquipes = document.getElementById("graficoEquipes");
-  if (!canvasHabilidades || !canvasEquipes || typeof Chart === "undefined") return;
 
-  const dadosHabilidades = gerarEstatisticasHabilidades();
-  if (graficoHabilidades) graficoHabilidades.destroy();
-  graficoHabilidades = new Chart(canvasHabilidades, {
-    type: "doughnut",
-    data: {
-      labels: Object.keys(dadosHabilidades),
-      datasets: [{
-        data: Object.values(dadosHabilidades),
-        backgroundColor: ["#4338ca", "#8b5cf6", "#06b6d4", "#fb7185", "#d97706", "#22c55e"]
-      }]
-    },
-    options: { plugins: { legend: { position: "bottom" } } }
-  });
+    atualizarGraficoHabilidades();
 
-  if (graficoEquipes) graficoEquipes.destroy();
-  graficoEquipes = new Chart(canvasEquipes, {
-    type: "bar",
-    data: {
-      labels: equipes.map(e => e.nome),
-      datasets: [{
-        label: "Integrantes",
-        data: equipes.map(e => e.integrantes.length),
-        backgroundColor: "#4338ca",
-        borderRadius: 6
-      }]
-    },
-    options: {
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-    }
-  });
+    atualizarGraficoEquipes();
+
 }
 
-/* =====================================================
-   EXPORTAÇÃO
-===================================================== */
-function baixarArquivo(conteudo, nomeArquivo, tipoMime){
-  const arquivo = new Blob([conteudo], { type: tipoMime });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(arquivo);
-  link.download = nomeArquivo;
-  link.click();
-  URL.revokeObjectURL(link.href);
+function atualizarGraficoHabilidades(){
+
+    const ctx=$("#graficoHabilidades");
+
+    if(!ctx) return;
+
+    App.charts.habilidades?.destroy();
+
+    const mapa={};
+
+    App.participantes.forEach(p=>{
+
+        mapa[p.habilidade]=(mapa[p.habilidade]||0)+1;
+
+    });
+
+    App.charts.habilidades=new Chart(ctx,{
+
+        type:"bar",
+
+        data:{
+
+            labels:Object.keys(mapa),
+
+            datasets:[{
+
+                data:Object.values(mapa)
+
+            }]
+
+        },
+
+        options:{
+
+            responsive:true,
+
+            plugins:{
+
+                legend:{display:false}
+
+            }
+
+        }
+
+    });
+
+}
+
+function atualizarGraficoEquipes(){
+
+    const ctx=$("#graficoEquipes");
+
+    if(!ctx) return;
+
+    App.charts.equipes?.destroy();
+
+    App.charts.equipes=new Chart(ctx,{
+
+        type:"doughnut",
+
+        data:{
+
+            labels:App.equipes.map(e=>e.nome),
+
+            datasets:[{
+
+                data:App.equipes.map(
+
+                    e=>e.integrantes.length
+
+                )
+
+            }]
+
+        },
+
+        options:{
+
+            responsive:true
+
+        }
+
+    });
+
+}
+
+/* ==========================================================
+   EXPORTAÇÃO CSV
+   ========================================================== */
+
+function baixarArquivo(nome,texto){
+
+    const blob=new Blob([texto]);
+
+    const url=URL.createObjectURL(blob);
+
+    const a=document.createElement("a");
+
+    a.href=url;
+
+    a.download=nome;
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+
 }
 
 function exportarCSV(){
-  let csv = "Nome,Habilidade,Equipe\n";
-  participantes.forEach(p => {
-    const equipe = p.equipeId != null ? getEquipe(p.equipeId) : null;
-    csv += `"${p.nome}","${p.habilidade}","${equipe ? equipe.nome : "Sem equipe"}"\n`;
-  });
-  baixarArquivo(csv, "participantes.csv", "text/csv");
-  mostrarToast("CSV de participantes exportado.", "sucesso");
+
+    let csv="Nome,Habilidade,Equipe\n";
+
+    App.participantes.forEach(p=>{
+
+        const equipe=App.equipes.find(
+
+            e=>e.id===p.equipe
+
+        );
+
+        csv+=`${p.nome},${p.habilidade},${equipe?equipe.nome:"Sem equipe"}\n`;
+
+    });
+
+    baixarArquivo(
+
+        "participantes.csv",
+
+        csv
+
+    );
+
 }
 
 function exportarEquipesCSV(){
-  let csv = "Equipe,Capacidade,Integrantes\n";
-  equipes.forEach(e => {
-    const nomes = e.integrantes.map(id => getParticipante(id)?.nome).filter(Boolean).join(" | ");
-    csv += `"${e.nome}",${e.capacidade},"${nomes}"\n`;
-  });
-  baixarArquivo(csv, "equipes.csv", "text/csv");
-  mostrarToast("CSV de equipes exportado.", "sucesso");
+
+    let csv="Equipe,Capacidade,Integrantes\n";
+
+    App.equipes.forEach(e=>{
+
+        csv+=`${e.nome},${e.capacidade},${e.integrantes.length}\n`;
+
+    });
+
+    baixarArquivo(
+
+        "equipes.csv",
+
+        csv
+
+    );
+
 }
 
+/* ==========================================================
+   EXPORTAÇÃO PDF
+   ========================================================== */
+
 function exportarPDF(){
-  if (!window.jspdf){ mostrarToast("Não foi possível gerar o PDF.", "erro"); return; }
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
 
-  pdf.setFontSize(18);
-  pdf.text("Lista de Participantes", 20, 20);
+    const pdf=new jspdf.jsPDF();
 
-  let y = 35;
-  pdf.setFontSize(12);
-  participantes.forEach((p, index) => {
-    const equipe = p.equipeId != null ? getEquipe(p.equipeId) : null;
-    pdf.text(`${index + 1}. ${p.nome} | ${p.habilidade} | ${equipe ? equipe.nome : "Sem equipe"}`, 20, y);
-    y += 9;
-    if (y > 280){ pdf.addPage(); y = 20; }
-  });
+    pdf.text(
 
-  pdf.save("participantes.pdf");
-  mostrarToast("PDF de participantes criado.", "sucesso");
+        "Lista de Participantes",
+
+        15,
+
+        20
+
+    );
+
+    let y=35;
+
+    App.participantes.forEach(p=>{
+
+        pdf.text(
+
+            `${p.nome} - ${p.habilidade}`,
+
+            15,
+
+            y
+
+        );
+
+        y+=8;
+
+    });
+
+    pdf.save("participantes.pdf");
+
 }
 
 function exportarEquipesPDF(){
-  if (!window.jspdf){ mostrarToast("Não foi possível gerar o PDF.", "erro"); return; }
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
 
-  pdf.setFontSize(18);
-  pdf.text("Equipes do Evento", 20, 20);
+    const pdf=new jspdf.jsPDF();
 
-  let y = 35;
-  equipes.forEach(e => {
-    pdf.setFontSize(13);
-    pdf.text(`${e.nome} (${e.integrantes.length}/${e.capacidade})`, 20, y);
-    y += 9;
-    pdf.setFontSize(11);
-    e.integrantes.forEach(id => {
-      const p = getParticipante(id);
-      if (p){ pdf.text(`- ${p.nome}`, 28, y); y += 7; }
+    pdf.text(
+
+        "Lista de Equipes",
+
+        15,
+
+        20
+
+    );
+
+    let y=35;
+
+    App.equipes.forEach(e=>{
+
+        pdf.text(
+
+            `${e.nome} (${e.integrantes.length}/${e.capacidade})`,
+
+            15,
+
+            y
+
+        );
+
+        y+=8;
+
     });
-    y += 8;
-    if (y > 270){ pdf.addPage(); y = 20; }
-  });
 
-  pdf.save("equipes.pdf");
-  mostrarToast("PDF de equipes criado.", "sucesso");
+    pdf.save("equipes.pdf");
+
 }
-
-/* =====================================================
-   VALIDAÇÃO / INTEGRIDADE DOS DADOS
-===================================================== */
-function validarSistema(){
-  // REGRA: participante não pode apontar para uma equipe que não existe mais
-  participantes.forEach(p => {
-    if (p.equipeId != null && !getEquipe(p.equipeId)) p.equipeId = null;
-  });
-
-  equipes.forEach(e => {
-    // REGRA: um participante não pode ocupar duas vagas na mesma equipe (remove duplicatas)
-    e.integrantes = [...new Set(e.integrantes)];
-
-    // remove integrantes que não existem mais na base de participantes
-    e.integrantes = e.integrantes.filter(id => getParticipante(id));
-
-    // REGRA: a equipe nunca pode ultrapassar sua capacidade máxima
-    if (e.integrantes.length > e.capacidade){
-      e.integrantes = e.integrantes.slice(0, e.capacidade);
-    }
-
-    if (e.liderId != null && !e.integrantes.includes(e.liderId)) e.liderId = null;
-  });
-
-  // REGRA: um participante não pode estar em duas equipes ao mesmo tempo —
-  // se aparecer em mais de uma lista de integrantes, mantém só a primeira
-  const jaAlocado = new Set();
-  equipes.forEach(e => {
-    e.integrantes = e.integrantes.filter(id => {
-      if (jaAlocado.has(id)) return false;
-      jaAlocado.add(id);
-      return true;
-    });
-  });
-
-  // sincroniza participante.equipeId com a equipe em que ele realmente está
-  participantes.forEach(p => {
-    const equipeReal = equipes.find(e => e.integrantes.includes(p.id));
-    p.equipeId = equipeReal ? equipeReal.id : null;
-    if (!equipeReal) p.lider = false;
-  });
-
-  salvarDados();
-}
-
-/* =====================================================
-   NAVEGAÇÃO MOBILE
-===================================================== */
-function configurarMenuMobile(){
-  const sidebar = document.getElementById("sidebar");
-  const botao = document.getElementById("menuToggle");
-  botao.addEventListener("click", () => sidebar.classList.toggle("aberta"));
-
-  document.querySelectorAll(".sidebar a").forEach(link => {
-    link.addEventListener("click", () => {
-      sidebar.classList.remove("aberta");
-      document.querySelectorAll(".sidebar a").forEach(a => a.classList.remove("ativo"));
-      link.classList.add("ativo");
-    });
-  });
-}
-
-/* =====================================================
-   ATUALIZAÇÃO GERAL
-===================================================== */
-function atualizarSistema(){
-  atualizarParticipantes();
-  atualizarEquipes();
-  atualizarSemEquipe();
-  atualizarDashboard();
-  atualizarCarrossel();
-  atualizarGraficos();
-}
-
-/* =====================================================
-   EVENTOS E INICIALIZAÇÃO
-===================================================== */
-window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("pesquisaParticipante").addEventListener("input", atualizarParticipantes);
-  document.getElementById("filtroHabilidade").addEventListener("change", atualizarParticipantes);
-  document.getElementById("filtroSituacao").addEventListener("change", atualizarParticipantes);
-
-  configurarMenuMobile();
-  validarSistema();
-  atualizarSistema();
-});
