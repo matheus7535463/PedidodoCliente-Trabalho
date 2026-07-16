@@ -243,15 +243,36 @@ Projeto desenvolvido como atividade prática da disciplina de **Análise e Desen
 > *(Adicione aqui imagens ou GIFs do sistema.)*
 
 ```
+📷 Use Case
+<img width="1536" height="751" alt="image" src="https://github.com/user-attachments/assets/51b752f8-7293-43fb-b51f-9b0eb8ea00a6" />
+
+📷 DER
+<img width="931" height="561" alt="61ad6f96-1ecf-4566-902f-d1410b8239b3" src="https://github.com/user-attachments/assets/902cfcbf-014d-497c-98bd-51734c7593bb" />
+
+📷 Mockup
+<img width="999" height="564" alt="Captura de tela 2026-07-16 163521" src="https://github.com/user-attachments/assets/ff361bb4-cc00-464f-adbc-4a1db8312e23" />
+<img width="1003" height="641" alt="Captura de tela 2026-07-16 163544" src="https://github.com/user-attachments/assets/98051822-ed37-4d34-a297-9156c4f46993" />
+<img width="978" height="660" alt="Captura de tela 2026-07-16 163611" src="https://github.com/user-attachments/assets/398a80fa-c251-4e89-a847-0056106cf334" />
+<img width="840" height="602" alt="Captura de tela 2026-07-16 163649" src="https://github.com/user-attachments/assets/5c414120-fe37-4abd-b5b6-7bdd5dda0add" />
+<img width="837" height="629" alt="Captura de tela 2026-07-16 163710" src="https://github.com/user-attachments/assets/3cfbb2ba-074b-4bba-ba5f-d9bb0ae30d2f" />
+
 📷 Dashboard
+<img width="1362" height="643" alt="cf8a5b9e-06a8-4fa2-aaf7-8e4f0502fd0a" src="https://github.com/user-attachments/assets/6590c7bf-75d1-4eed-96f6-e1bfa89c2af8" />
 
 📷 Cadastro de Participantes
+<img width="1363" height="639" alt="3cc462de-8b3d-427f-8e39-b27a1134b76a" src="https://github.com/user-attachments/assets/34f3ba12-b51a-4bcd-8377-1e9477e77fee" />
 
 📷 Cadastro de Equipes
+<img width="1365" height="640" alt="318abe92-c62a-479d-ba8e-ede7d0f6f1d7" src="https://github.com/user-attachments/assets/a411e570-32be-495a-b48b-327d4735dacf" />
+
 
 📷 Estatísticas
+<img width="1364" height="641" alt="1378b97a-77aa-421b-b628-c680e4902399" src="https://github.com/user-attachments/assets/29974290-7d3b-4823-9b7a-dd0c22722a5b" />
+
 
 📷 Exportação
+<img width="1366" height="640" alt="f92fa03d-5df9-4de2-bbf6-926cc9876f03" src="https://github.com/user-attachments/assets/015b3ba1-c745-47f6-bad5-20909864b5f5" />
+
 ```
 
 ---
