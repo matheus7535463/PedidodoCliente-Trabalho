@@ -222,7 +222,6 @@ Projeto desenvolvido por:
 - **Erick Matheus**
 - **Kelvyn Prichoa**
 - **Erika Perfeito**
-- **Joaquim Bitencourt**
 
 
 # 📚 Disciplina
