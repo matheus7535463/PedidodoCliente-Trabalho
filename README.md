@@ -240,9 +240,7 @@ Projeto desenvolvido como atividade prática da disciplina de **Análise e Desen
 
 # 📸 Preview
 
-> *(Adicione aqui imagens ou GIFs do sistema.)*
 
-```
 📷 Use Case
 <img width="1536" height="751" alt="image" src="https://github.com/user-attachments/assets/51b752f8-7293-43fb-b51f-9b0eb8ea00a6" />
 
@@ -273,7 +271,6 @@ Projeto desenvolvido como atividade prática da disciplina de **Análise e Desen
 📷 Exportação
 <img width="1366" height="640" alt="f92fa03d-5df9-4de2-bbf6-926cc9876f03" src="https://github.com/user-attachments/assets/015b3ba1-c745-47f6-bad5-20909864b5f5" />
 
-```
 
 ---
 
